@@ -2,7 +2,7 @@ name: Required Workflow - Zizmor
 
 on:
   pull_request:
-  merge_queue:
+  merge_group:
   workflow_call:
 
 permissions: {}
