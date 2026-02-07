@@ -10,5 +10,5 @@ Central repository for organization-wide CI/CD governance workflows.
 
 ## Governance
 
-- Protected by repository ruleset managed through Terraform in `/workspaces/terraform/github`.
+- Protected by a repository ruleset managed with Terraform.
 - CODEOWNERS requires owner review for all changes.
