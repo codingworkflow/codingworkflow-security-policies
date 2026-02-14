@@ -1,23 +1,25 @@
 name: Enforce Owner PRs
 
 on:
+  # zizmor: ignore[dangerous-triggers] This workflow does not checkout or execute PR code; it only closes unauthorized PRs via metadata.
   pull_request_target:
     types:
       - opened
       - reopened
       - synchronize
 
-permissions:
-  pull-requests: write
-  contents: read
+permissions: {}
 
 jobs:
   owner_gate:
     if: ${{ github.event.pull_request.user.login != 'Mehdi-Bl' }}
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
     steps:
       - name: Close unauthorized PR
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const number = context.payload.pull_request.number;
