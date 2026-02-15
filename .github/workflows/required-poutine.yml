@@ -1,0 +1,49 @@
+name: Required Workflow - Poutine
+
+on:
+  pull_request:
+  merge_group:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  poutine:
+    name: poutine
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout caller repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Run poutine scan
+        uses: boostsecurityio/poutine-action@84c0a0d32e8d57ae12651222be1eb15351429228 # v0.15.2
+        with:
+          format: sarif
+          output: results.sarif
+
+      - name: Normalize poutine SARIF for GitHub upload
+        run: |
+          jq 'del(.runs[]?.tool.driver.supportedTaxonomies)' results.sarif > results.cleaned.sarif
+          mv results.cleaned.sarif results.sarif
+
+      - name: Upload poutine SARIF
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: github/codeql-action/upload-sarif@45cbd0c69e560cd9e7cd7f8c32362050c9b7ded2 # v4.32.2
+        with:
+          sarif_file: results.sarif
+          category: /tool:poutine
+
+      - name: Upload poutine artifact
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: poutine-sarif
+          path: results.sarif
+          if-no-files-found: error
+          retention-days: 14
