@@ -109,23 +109,29 @@ jobs:
           client-id: ${{ inputs.azure_client_id }}
           tenant-id: ${{ inputs.azure_tenant_id }}
           subscription-id: ${{ inputs.azure_subscription_id }}
+          enable-AzPSSession: true
 
       - name: Fetch Claude OAuth token from Azure Key Vault
         id: keyvault
+        uses: azure/powershell@53dd145408794f7e80f97cfcca04155c85234709 # v2.0.0
         env:
           AZURE_KEY_VAULT_NAME: ${{ inputs.azure_key_vault_name }}
           CLAUDE_SECRET_NAME: ${{ inputs.claude_secret_name }}
-        run: |
-          set -euo pipefail
+        with:
+          azPSVersion: latest
+          inlineScript: |
+            $ErrorActionPreference = "Stop"
 
-          claude_token="$(az keyvault secret show --vault-name "${AZURE_KEY_VAULT_NAME}" --name "${CLAUDE_SECRET_NAME}" --query value -o tsv)"
-          if [ -z "${claude_token}" ]; then
-            echo "Failed to read Claude token from Azure Key Vault secret '${CLAUDE_SECRET_NAME}'."
-            exit 1
-          fi
+            $vaultName = $env:AZURE_KEY_VAULT_NAME
+            $secretName = $env:CLAUDE_SECRET_NAME
+            $claudeToken = Get-AzKeyVaultSecret -VaultName $vaultName -Name $secretName -AsPlainText
 
-          echo "::add-mask::${claude_token}"
-          echo "claude_code_oauth_token=${claude_token}" >> "${GITHUB_OUTPUT}"
+            if ([string]::IsNullOrWhiteSpace($claudeToken)) {
+              throw "Failed to read Claude token from Azure Key Vault secret '$secretName'."
+            }
+
+            Write-Output "::add-mask::$claudeToken"
+            "claude_code_oauth_token=$claudeToken" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Resolve pull request metadata
         id: pr
